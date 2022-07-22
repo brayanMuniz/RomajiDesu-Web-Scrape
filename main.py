@@ -1,4 +1,5 @@
 import asyncio
+from types import NoneType
 import requests
 from bs4 import BeautifulSoup
 file_name = "song-lyrics.txt"
@@ -11,6 +12,7 @@ with open(file_name) as file:
 # Remove duplicates
 lines = []
 [lines.append(x) for x in all_lines if x not in lines]
+
 print("Wait around", len(lines) + 5, "seconds")
 
 kanji_dict = {}
@@ -41,12 +43,13 @@ async def get_kanji_from_line(line):
         soup.prettify()
         kanji_detail = soup.find_all("div", class_="kanji_detail")
         for kanji in kanji_detail:
-            kanji_list.append(minify_kanji_detail(kanji))
+            if type(kanji) != NoneType:
+                kanji_list.append(minify_kanji_detail(kanji))
 
         for kanji in kanji_list:
             if(kanji["symbol"] not in kanji_dict.keys()):
                 kanji_dict[kanji["symbol"]] = kanji
-    await asyncio.sleep(.5)
+    await asyncio.sleep(1)
 
 
 loop = asyncio.get_event_loop()
@@ -57,10 +60,17 @@ for line in lines:
 loop.run_until_complete(asyncio.wait(tasks))
 loop.close()
 
-# Generates a new fille called kanji.txt
+# Oranized
+organized_kanji_dict = {}
+for line in lines:
+    for letter in line:
+        if letter in kanji_dict.keys() and letter not in organized_kanji_dict.keys():
+            organized_kanji_dict[letter] = kanji_dict[letter]
+
+# Generates a new fille called kanji.txt with organized kanji that appears from song-lyrics.txt
 kanji_string = ""
-for kanji in kanji_dict:
-    kanji_string += f"{kanji} Meaning:{kanji_dict[kanji]['meaning']}. Onyomi:{kanji_dict[kanji]['onyomi']}, Kunyumi:{kanji_dict[kanji]['kunyomi']} \n"
+for kanji in organized_kanji_dict:
+    kanji_string += f"{kanji} Meaning:{organized_kanji_dict[kanji]['meaning']}.\n \t \t    Onyomi:{organized_kanji_dict[kanji]['onyomi']}, Kunyumi:{organized_kanji_dict[kanji]['kunyomi']} \n"
 
 with open('kanji.txt', 'w') as f:
     f.write(kanji_string)
